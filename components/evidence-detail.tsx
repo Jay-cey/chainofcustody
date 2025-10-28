@@ -8,6 +8,7 @@ import { FileIcon, Lock, Download, Share2, Hash, Calendar, User } from "lucide-r
 import { BlockchainVerification } from "@/components/blockchain-verification"
 import { EncryptionStatus } from "@/components/encryption-status"
 import { HashVerificationPanel } from "@/components/hash-verification-panel"
+import { BlockDAGVerificationTab } from "@/components/blockdag-verification-tab"
 
 interface EvidenceDetailProps {
   evidenceId: string
@@ -123,8 +124,11 @@ export function EvidenceDetail({ evidenceId }: EvidenceDetailProps) {
       />
 
       {/* Tabs */}
-      <Tabs defaultValue="hash" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-muted">
+      <Tabs defaultValue="blockdag" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 bg-muted">
+          <TabsTrigger value="blockdag" className="gap-2">
+            ⛓️ BlockDAG Verification
+          </TabsTrigger>
           <TabsTrigger value="hash" className="gap-2">
             <Lock className="w-4 h-4" />
             Cryptographic Hash
@@ -138,6 +142,15 @@ export function EvidenceDetail({ evidenceId }: EvidenceDetailProps) {
             Access Log
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="blockdag" className="space-y-4">
+          <BlockDAGVerificationTab
+            itemNumber={evidence.itemNumber}
+            txHash="dagtx1p8f3a2c9d1e5b7a4f8c2d6e9f3a7b5c8d1e4f6a9"
+            height={194283}
+            validationWeight={100}
+          />
+        </TabsContent>
 
         <TabsContent value="hash" className="space-y-4">
           <Card>
