@@ -27,6 +27,10 @@ export function Dashboard() {
     router.push("/login")
   }
 
+  const handleCardClick = (href: string) => {
+    router.push(href)
+  }
+
   const quickActions = [
     {
       icon: FileText,
@@ -106,7 +110,11 @@ export function Dashboard() {
             {quickActions.map((action) => {
               const Icon = action.icon
               return (
-                <Card key={action.title} className="hover:border-primary/50 transition-colors cursor-pointer">
+                <Card 
+                  key={action.title} 
+                  className="hover:border-primary/50 transition-colors cursor-pointer"
+                  onClick={() => handleCardClick(action.href)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div>

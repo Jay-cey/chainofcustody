@@ -1,4 +1,5 @@
 // Mock blockchain transaction types
+import { blockdagClient } from "./blockdag-client"
 export interface BlockchainTransaction {
   hash: string
   status: "pending" | "confirmed" | "failed"
@@ -42,19 +43,21 @@ export async function submitInitialEvidence(
   caseNumber: string,
   description: string,
 ): Promise<BlockchainTransaction> {
-  // Simulate blockchain submission
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        hash: `0x${Math.random().toString(16).slice(2)}`,
-        status: "confirmed",
-        confirmationTime: 45,
-        gasFee: "0.0234 ETH",
-        blockNumber: 18945234,
-        timestamp: Date.now(),
-      })
-    }, 2000)
+  console.log("Submitting initial evidence to BlockDAG...")
+  const tx = await blockdagClient.anchorData({
+    type: "initial-evidence",
+    evidenceHash,
+    itemNumber,
+    caseNumber,
+    description,
   })
+  return {
+    hash: tx.hash,
+    status: tx.status,
+    blockNumber: tx.blockNumber,
+    timestamp: tx.timestamp,
+    gasFee: "0.001 BDAG", // Example fee
+  }
 }
 
 // Mock smart contract function: Add custody event to blockchain
@@ -64,21 +67,24 @@ export async function addCustodyEvent(
   toCustodian: string,
   transferReason: string,
 ): Promise<CustodyBlockchainEvent> {
-  // Simulate blockchain transaction
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        eventId: `evt_${Date.now()}`,
-        evidenceHash,
-        fromCustodian,
-        toCustodian,
-        transactionHash: `0x${Math.random().toString(16).slice(2)}`,
-        timestamp: Date.now(),
-        gasUsed: "0.0156 ETH",
-        confirmed: true,
-      })
-    }, 1500)
+  console.log("Adding custody event to BlockDAG...")
+  const tx = await blockdagClient.anchorData({
+    type: "custody-transfer",
+    evidenceHash,
+    from: fromCustodian,
+    to: toCustodian,
+    reason: transferReason,
   })
+  return {
+    eventId: `evt_${Date.now()}`,
+    evidenceHash,
+    fromCustodian,
+    toCustodian,
+    transactionHash: tx.hash,
+    timestamp: tx.timestamp,
+    gasUsed: "0.001 BDAG",
+    confirmed: tx.status === "confirmed",
+  }
 }
 
 // Mock smart contract function: Get complete chain of custody from blockchain
@@ -117,25 +123,23 @@ export async function verifyEvidenceHash(
   evidenceHash: string,
   contractAddress: string,
 ): Promise<{ verified: boolean; blockNumber: number; timestamp: number }> {
-  // Simulate blockchain verification
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({
-        verified: true,
-        blockNumber: 18945234,
-        timestamp: Date.now() - 172800000,
-      })
-    }, 800)
-  })
+  console.log(`Verifying hash ${evidenceHash} on BlockDAG...`)
+  // In a real app, we'd query for a transaction containing this hash.
+  // Here we simulate finding a transaction.
+  const mockTxHash = `dagtx${evidenceHash.slice(0, 10)}`
+  const tx = await blockdagClient.getTransaction(mockTxHash)
+
+  if (tx && tx.status === "confirmed") {
+    return {
+      verified: true,
+      blockNumber: tx.blockNumber!,
+      timestamp: tx.timestamp,
+    }
+  }
+  throw new Error("Verification failed: Hash not found or transaction not confirmed.")
 }
 
 // Get blockchain network status
-export function getBlockchainStatus() {
-  return {
-    network: "Ethereum Mainnet",
-    contractAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f42e0",
-    status: "connected",
-    lastSync: new Date(Date.now() - 30000).toISOString(),
-    gasPrice: "45 Gwei",
-  }
+export async function getBlockchainStatus() {
+  return await blockdagClient.getNetworkStatus()
 }

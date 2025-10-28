@@ -41,6 +41,8 @@ export default function LoginPage() {
       await login(email, password)
       setFailedAttempts(0)
       setShowMFAPrompt(true)
+      // Add navigation to homepage after successful login
+      router.push('/') // or router.push('/') depending on your homepage route
     } catch (err) {
       const newAttempts = failedAttempts + 1
       setFailedAttempts(newAttempts)

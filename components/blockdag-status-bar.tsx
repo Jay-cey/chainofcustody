@@ -29,7 +29,9 @@ export function BlockDAGStatusBar({ wallet }: BlockDAGStatusBarProps) {
     <div className="flex items-center gap-4 px-4 py-2 bg-muted/50 border-b border-border text-sm">
       <div className="flex items-center gap-2">
         <span className="text-muted-foreground">🔗 BlockDAG Network Status</span>
-        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Connected ✅</Badge>
+        <Badge className={wallet.isConnected ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"}>
+          {wallet.isConnected ? "Connected ✅" : "Disconnected ❌"}
+        </Badge>
       </div>
 
       <div className="flex items-center gap-2 text-muted-foreground">
