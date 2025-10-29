@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle, Save } from "lucide-react"
 import { BlockchainIntegrationPanel } from "@/components/blockchain-integration-panel"
 import { KeyManagementDashboard } from "@/components/key-management-dashboard"
+import { BlockDAGConfigurationPanel } from "@/components/blockdag-configuration-panel"
 
 export function SystemSettings() {
   const [isSaving, setIsSaving] = useState(false)
@@ -88,6 +89,16 @@ export function SystemSettings() {
           }`}
         >
           Blockchain
+        </button>
+        <button
+          onClick={() => setActiveTab("blockdag")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "blockdag"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          BlockDAG
         </button>
       </div>
 
@@ -265,6 +276,12 @@ export function SystemSettings() {
       {activeTab === "blockchain" && (
         <>
           <BlockchainIntegrationPanel />
+        </>
+      )}
+
+      {activeTab === "blockdag" && (
+        <>
+          <BlockDAGConfigurationPanel />
         </>
       )}
 
