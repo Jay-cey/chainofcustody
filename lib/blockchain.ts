@@ -52,7 +52,7 @@ export async function submitInitialEvidence(
         hash: `0x${Math.random().toString(16).slice(2)}`,
         status: "confirmed",
         confirmationTime: 45,
-        gasFee: "0.0234 ETH",
+        gasFee: "0.0234 BDAG",
         blockNumber: 18945234,
         timestamp: Date.now(),
       })
@@ -77,7 +77,7 @@ export async function addCustodyEvent(
         toCustodian,
         transactionHash: `0x${Math.random().toString(16).slice(2)}`,
         timestamp: Date.now(),
-        gasUsed: "0.0156 ETH",
+        gasUsed: "0.0156 BDAG",
         confirmed: true,
       })
     }, 1500)
@@ -97,7 +97,7 @@ export async function getChainOfCustody(evidenceHash: string): Promise<CustodyBl
           toCustodian: "Officer Smith",
           transactionHash: "0xabc123",
           timestamp: Date.now() - 86400000,
-          gasUsed: "0.0234 ETH",
+          gasUsed: "0.0234 BDAG",
           confirmed: true,
         },
         {
@@ -107,7 +107,7 @@ export async function getChainOfCustody(evidenceHash: string): Promise<CustodyBl
           toCustodian: "Evidence Custodian",
           transactionHash: "0xdef456",
           timestamp: Date.now() - 43200000,
-          gasUsed: "0.0156 ETH",
+          gasUsed: "0.0156 BDAG",
           confirmed: true,
         },
       ])
@@ -135,7 +135,7 @@ export async function verifyEvidenceHash(
 // Get blockchain network status
 export function getBlockchainStatus() {
   return {
-    network: "Ethereum Mainnet",
+    network: "BlockDAG Testnet",
     contractAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f42e0",
     status: "connected",
     lastSync: new Date(Date.now() - 30000).toISOString(),
