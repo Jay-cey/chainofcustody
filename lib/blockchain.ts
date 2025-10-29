@@ -112,4 +112,36 @@ export const blockchainClient = {
     console.log(`BC: Getting all logs for '${fileId}'`)
     return aclChain.filter(block => block.payload.fileId === fileId).sort((a, b) => b.timestamp - a.timestamp)
   },
+
+  /**
+   * Returns a summary status of the mock blockchain.
+   */
+  async getBlockchainStatus(): Promise<{
+    blockCount: number
+    lastBlockTimestamp: number | null
+    network: string
+    status: string
+    gasPrice: string
+    lastSync: number
+    contractAddress: string
+  }> {
+    const blockCount = aclChain.length
+    const lastBlock = aclChain.length > 0 ? aclChain[aclChain.length - 1] : null
+
+    // Mock additional blockchain status details
+    const mockNetwork = "BlockDAG TestNet"
+    const mockStatus = "Operational"
+    const mockGasPrice = "20 Gwei"
+    const mockContractAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f42e0" // Example address
+
+    return {
+      blockCount,
+      lastBlockTimestamp: lastBlock?.timestamp ?? null,
+      network: mockNetwork,
+      status: mockStatus,
+      gasPrice: mockGasPrice,
+      lastSync: Date.now(), // Current time as last sync
+      contractAddress: mockContractAddress,
+    }
+  },
 }

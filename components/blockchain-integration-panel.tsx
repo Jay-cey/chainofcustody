@@ -1,16 +1,57 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Copy, ExternalLink, CheckCircle } from "lucide-react"
-import { getBlockchainStatus } from "@/lib/blockchain"
+import { Copy, ExternalLink, CheckCircle, Loader2, AlertCircle } from "lucide-react"
+import { blockchainClient } from "@/lib/blockchain"
+
+type BlockchainStatus = Awaited<ReturnType<typeof blockchainClient.getBlockchainStatus>>
 
 export function BlockchainIntegrationPanel() {
-  const status = getBlockchainStatus()
+  const [status, setStatus] = useState<BlockchainStatus | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const fetchedStatus = await blockchainClient.getBlockchainStatus()
+        setStatus(fetchedStatus)
+      } catch (err: any) {
+        setError("Failed to load blockchain status: " + err.message)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchStatus()
+  }, [])
+
+  const copyToClipboard = (text: string | null) => {
+    if (text) {
+      navigator.clipboard.writeText(text)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-40 text-muted-foreground">
+          <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading Blockchain Status...
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error || !status) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-40 text-destructive">
+          <AlertCircle className="w-6 h-6 mr-2" /> {error || "An unknown error occurred."}
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
