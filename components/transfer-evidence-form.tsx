@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-context"
 import { Textarea } from "@/components/ui/textarea"
 import { DigitalSignature } from "@/components/digital-signature"
-import { addCustodyEvent } from "@/lib/blockchain"
+import { blockchainClient } from "@/lib/blockchain"
 
 export function TransferEvidenceForm() {
   const [isLoading, setIsLoading] = useState(false)
@@ -41,11 +41,11 @@ export function TransferEvidenceForm() {
     setIsLoading(true)
     try {
       const mockHash = "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
-      const txResult = await addCustodyEvent(
+      const txResult = await blockchainClient.transferCustody(
         mockHash,
         formData.currentHolder,
         formData.newHolder,
-        formData.transferReason,
+        user?.id || "system",
       )
       setBlockchainTx(txResult)
 

@@ -79,6 +79,31 @@ export const blockchainClient = {
   },
 
   /**
+   * Writes a 'REVOKE' and a 'GRANT' block to transfer custody.
+   */
+  async transferCustody(
+    fileId: string,
+    fromUserId: string,
+    toUserId: string,
+    transferringUserId: string,
+  ): Promise<{ revokeBlock: ACLBlock; grantBlock: ACLBlock }> {
+    console.log(`BC: Transferring custody of '${fileId}' from '${fromUserId}' to '${toUserId}' by '${transferringUserId}'`)
+    const revokeBlock: ACLBlock = {
+      id: generateId(),
+      timestamp: Date.now(),
+      type: "REVOKE",
+      payload: { fileId, userId: fromUserId, grantedBy: transferringUserId },
+      previousBlockId: lastBlockId,
+    }
+    aclChain.push(revokeBlock)
+    lastBlockId = revokeBlock.id
+
+    // Grant read access to the new holder
+    const grantBlock = await this.grantAccess(fileId, toUserId, "read", transferringUserId)
+    return { revokeBlock, grantBlock }
+  },
+
+  /**
    * Verifies if a user has a specific permission for a file by traversing the chain.
    * It checks for the most recent relevant grant/revoke action.
    */
