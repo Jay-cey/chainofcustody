@@ -6,20 +6,43 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-context"
 import { Textarea } from "@/components/ui/textarea"
 import { Upload, FileIcon, X, CheckCircle } from "lucide-react"
-import { calculateFileHash, submitInitialEvidence } from "@/lib/blockchain"
+import { calculateFileHash, type ACLBlock } from "@/lib/blockchain"
+import { generateEncryptionKey, exportKeyAsBase64, encryptFile } from "@/lib/crypto"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Key, Copy } from "lucide-react"
 
+/**
+ * Mocks uploading a file to a secure storage (like S3, IPFS, or a private server).
+ * In a real application, this would involve a fetch/axios call to a backend endpoint.
+ * @returns A mock URL or identifier for the stored file.
+ */
+async function mockUploadFileToSecureStorage(encryptedFile: EncryptedFile): Promise<string> {
+  console.log(`Uploading ${encryptedFile.file.name} (${encryptedFile.ciphertext.byteLength} bytes) to secure storage...`)
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500))
+  const storageId = `secure-storage-id-${Math.random().toString(36).slice(2)}`
+  console.log(`Upload complete. Storage ID: ${storageId}`)
+  return storageId
+}
+interface EncryptedFile {
+  file: File
+  ciphertext: ArrayBuffer
+  iv: Uint8Array
+}
 export function EvidenceUploadForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [blockchainData, setBlockchainData] = useState<{
     hashes: Map<string, string>
-    transactionHash?: string
-    status?: string
-  }>({ hashes: new Map() })
+    encryptionKey?: string
+    encryptedFiles: Map<string, EncryptedFile>
+    txDetails?: ACLBlock
+  }>({ hashes: new Map(), encryptedFiles: new Map() })
   const [formData, setFormData] = useState({
     itemNumber: "",
     description: "",
@@ -35,23 +58,32 @@ export function EvidenceUploadForm() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files)
       setUploadedFiles(files)
 
-      // Calculate hashes for all files
-      files.forEach(async (file) => {
-        try {
-          const hash = await calculateFileHash(file)
-          setBlockchainData((prev) => ({
-            ...prev,
-            hashes: new Map(prev.hashes).set(file.name, hash),
-          }))
-        } catch (error) {
-          console.error("Error calculating hash:", error)
-        }
-      })
+      // Generate a single key for this batch of files
+      const key = await generateEncryptionKey()
+      const exportedKey = await exportKeyAsBase64(key)
+
+      const newHashes = new Map<string, string>()
+      const newEncryptedFiles = new Map<string, EncryptedFile>()
+
+      for (const file of files) {
+        const hash = await calculateFileHash(file)
+        newHashes.set(file.name, hash)
+
+        const { ciphertext, iv } = await encryptFile(file, key)
+        newEncryptedFiles.set(file.name, { file, ciphertext, iv })
+      }
+
+      setBlockchainData((prev) => ({
+        ...prev,
+        hashes: newHashes,
+        encryptedFiles: newEncryptedFiles,
+        encryptionKey: exportedKey,
+      }))
     }
   }
 
@@ -63,25 +95,52 @@ export function EvidenceUploadForm() {
     e.preventDefault()
     setIsLoading(true)
 
+    // In a real app, this is where you would "upload" the `blockchainData.encryptedFiles`
+    // (the ciphertext) to a secure, off-chain storage like S3, IPFS, or a private server.
+    // The location/URL from that storage would then be anchored to the blockchain.
+
+    if (!user?.id) {
+      toast.error("Authentication Error", { description: "You must be logged in to submit evidence." })
+      setIsLoading(false)
+      return
+    }
+    if (uploadedFiles.length === 0) {
+      toast.warning("No File Selected", { description: "Please select a file to upload." })
+      setIsLoading(false)
+      return
+    }
+
     try {
-      if (uploadedFiles.length > 0) {
-        const firstFileHash = blockchainData.hashes.get(uploadedFiles[0].name)
-        if (firstFileHash) {
-          const txResult = await submitInitialEvidence(
-            firstFileHash,
-            formData.itemNumber,
-            formData.caseNumber,
-            formData.description,
-          )
-          setBlockchainData((prev) => ({
-            ...prev,
-            transactionHash: txResult.hash,
-            status: txResult.status,
-          }))
-        }
+      const firstFile = uploadedFiles[0]
+      const fileHash = blockchainData.hashes.get(firstFile.name)
+      const encryptedFile = blockchainData.encryptedFiles.get(firstFile.name)
+
+      if (!fileHash || !encryptedFile) {
+        toast.error("File Processing Error", {
+          description: "File hash or encrypted data is missing. Please try re-selecting the file.",
+        })
+        return
       }
 
-      console.log("Uploading evidence:", formData, uploadedFiles, blockchainData)
+      // 1. "Upload" the encrypted file to secure storage and get its location/ID.
+      const storageId = await mockUploadFileToSecureStorage(encryptedFile)
+
+      // Call the new ACL grant API to register the uploader as the owner
+      const response = await fetch("/api/acl/grant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileId: fileHash, userId: user.id, permission: "owner" }),
+      })
+
+      if (!response.ok) {
+        const { error } = await response.json()
+        throw new Error(error || "Failed to anchor evidence to blockchain.")
+      }
+
+      const newBlock: ACLBlock = await response.json()
+      setBlockchainData(prev => ({ ...prev, txDetails: newBlock }))
+
+      // Note: We are NOT logging the original file content or the ciphertext for security.
       await new Promise((resolve) => setTimeout(resolve, 1500))
       router.push("/evidence")
     } finally {
@@ -222,15 +281,41 @@ export function EvidenceUploadForm() {
             </div>
           )}
 
+          {/* Encryption Key Display */}
+          {blockchainData.encryptionKey && (
+            <Alert variant="destructive">
+              <Key className="h-4 w-4" />
+              <AlertTitle>Save Your Encryption Key!</AlertTitle>
+              <AlertDescription className="mt-2">
+                This key is required to decrypt the evidence. Store it in a secure location.
+                <strong className="block">If you lose this key, the data will be unrecoverable.</strong>
+                <div className="mt-2 p-2 bg-background rounded-md flex items-center gap-2">
+                  <code className="text-sm font-mono break-all flex-1">{blockchainData.encryptionKey}</code>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText(blockchainData.encryptionKey!)}
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Blockchain Status */}
-          {blockchainData.transactionHash && (
+          {blockchainData.txDetails && (
             <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-2">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-                <p className="font-medium text-green-900 dark:text-green-100">Blockchain Verified</p>
+                <p className="font-medium text-green-900 dark:text-green-100">Evidence Anchored to BlockDAG</p>
               </div>
-              <p className="text-sm text-green-800 dark:text-green-200">
-                Transaction: {blockchainData.transactionHash.slice(0, 10)}...
+              <p className="text-xs text-green-800 dark:text-green-200 font-mono">
+                Block ID: {blockchainData.txDetails.id}
+              </p>
+              <p className="text-xs text-green-800 dark:text-green-200 font-mono">
+                Timestamp: {new Date(blockchainData.txDetails.timestamp).toLocaleString()}
               </p>
             </div>
           )}
