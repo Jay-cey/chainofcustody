@@ -70,9 +70,9 @@ export async function encryptFile(file: File, key: CryptoKey): Promise<{ ciphert
  * Decrypts data using AES-GCM.
  * @param {ArrayBuffer} ciphertext The data to decrypt.
  * @param {CryptoKey} key The decryption key.
- * @param {Uint8Array} iv The initialization vector used during encryption.
+ * @param {BufferSource} iv The initialization vector used during encryption.
  * @returns {Promise<ArrayBuffer>} The decrypted plaintext data.
  */
-export async function decryptData(ciphertext: ArrayBuffer, key: CryptoKey, iv: Uint8Array): Promise<ArrayBuffer> {
+export async function decryptData(ciphertext: ArrayBuffer, key: CryptoKey, iv: BufferSource): Promise<ArrayBuffer> {
   return window.crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, ciphertext)
 }
