@@ -8,15 +8,27 @@ import { LogOut, Shield, FileText, Lock, Users, BarChart3 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { SecurityStatusDashboard } from "@/components/security-status-dashboard"
 import { IncidentReportingModal } from "@/components/incident-reporting-modal"
+import { BlockDAGStatusBar } from "@/components/blockdag-status-bar"
+import { BlockDAGActivityWidget } from "@/components/blockdag-activity-widget"
 
 export function Dashboard() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const [incidentModalOpen, setIncidentModalOpen] = useState(false)
+  const [blockdagWallet] = useState({
+    address: "dag1qxy35Cc6634C0532925a3b844Bc9e7dC",
+    network: "BlockDAG Testnet",
+    balance: 125.4,
+    isConnected: true,
+  })
 
   const handleLogout = () => {
     logout()
     router.push("/login")
+  }
+
+  const handleCardClick = (href: string) => {
+    router.push(href)
   }
 
   const quickActions = [
@@ -49,6 +61,8 @@ export function Dashboard() {
   return (
     <>
       <div className="min-h-screen bg-background">
+        <BlockDAGStatusBar wallet={blockdagWallet} />
+
         {/* Header */}
         <header className="border-b border-border bg-card">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
@@ -81,6 +95,11 @@ export function Dashboard() {
             </p>
           </div>
 
+          {/* BlockDAG Activity Widget */}
+          <div className="mb-8">
+            <BlockDAGActivityWidget />
+          </div>
+
           {/* Security Status Dashboard */}
           <div className="mb-8">
             <SecurityStatusDashboard />
@@ -91,7 +110,11 @@ export function Dashboard() {
             {quickActions.map((action) => {
               const Icon = action.icon
               return (
-                <Card key={action.title} className="hover:border-primary/50 transition-colors cursor-pointer">
+                <Card 
+                  key={action.title} 
+                  className="hover:border-primary/50 transition-colors cursor-pointer"
+                  onClick={() => handleCardClick(action.href)}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div>
